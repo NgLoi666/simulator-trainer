@@ -9,9 +9,13 @@ on:
 
 jobs:
   build:
-    name: Build simulator-trainer (x86_64, Xcode 26.3)
-    # Self-hosted runner registered on your Intel Mac (macOS 15.7.5, Xcode 26.3)
-    runs-on: [self-hosted, macos, x86_64]
+    name: Build simulator-trainer (x86_64)
+    # GitHub-hosted Intel (x86_64) macOS runner
+    runs-on: macos-15-intel
+
+    env:
+      # Project targets macOS 15.2; hosted Intel ships Xcode 15.4 which supports it.
+      MACOSX_DEPLOYMENT_TARGET: 15.2
 
     steps:
       - name: Checkout (with submodules)
