@@ -10,18 +10,16 @@ on:
 jobs:
   build:
     name: Build simulator-trainer (x86_64)
-    # GitHub-hosted Intel (x86_64) macOS runner
-    runs-on: macos-15-intel
-
-    env:
-      # Project targets macOS 15.2; hosted Intel ships Xcode 15.4 which supports it.
-      MACOSX_DEPLOYMENT_TARGET: 15.2
+    runs-on: macos-26-intel
 
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Select Xcode 26.3
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app
 
       - name: Show toolchain
         run: |
@@ -45,7 +43,7 @@ jobs:
       - name: Locate built app
         run: |
           APP=$(find build/Build/Products/Release -maxdepth 1 -name "simulator-trainer.app" | head -1)
-          echo "App: $APP"
+          echo "App found: $APP"
           ls -la "$APP/Contents/MacOS"
 
       - name: Upload app artifact
