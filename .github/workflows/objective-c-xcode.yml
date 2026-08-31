@@ -1,30 +1,51 @@
-name: Xcode - Build and Analyze
+name: Build (macOS Intel)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build and analyse default scheme using xcodebuild command
-    runs-on: macos-latest
+    name: Build simulator-trainer (x86_64, Xcode 26.3)
+    # Self-hosted runner registered on your Intel Mac (macOS 15.7.5, Xcode 26.3)
+    runs-on: [self-hosted, macos, x86_64]
 
     steps:
-      - name: Checkout
+      - name: Checkout (with submodules)
         uses: actions/checkout@v4
-      - name: Set Default Scheme
+        with:
+          submodules: recursive
+
+      - name: Show toolchain
         run: |
-          scheme_list=$(xcodebuild -list -json | tr -d "\n")
-          default=$(echo $scheme_list | ruby -e "require 'json'; puts JSON.parse(STDIN.gets)['project']['targets'][0]")
-          echo $default | cat >default
-          echo Using default scheme: $default
-      - name: Build
-        env:
-          scheme: ${{ 'default' }}
+          sw_vers
+          uname -m
+          xcodebuild -version
+
+      - name: Build (Release, x86_64)
         run: |
-          if [ $scheme = default ]; then scheme=$(cat default); fi
-          if [ "`ls -A | grep -i \\.xcworkspace\$`" ]; then filetype_parameter="workspace" && file_to_build="`ls -A | grep -i \\.xcworkspace\$`"; else filetype_parameter="project" && file_to_build="`ls -A | grep -i \\.xcodeproj\$`"; fi
-          file_to_build=`echo $file_to_build | awk '{$1=$1;print}'`
-          xcodebuild clean build analyze -scheme "$scheme" -"$filetype_parameter" "$file_to_build" | xcpretty && exit ${PIPESTATUS[0]}
+          xcodebuild \
+            -project simulator-trainer.xcodeproj \
+            -scheme simulator-trainer \
+            -configuration Release \
+            -destination 'platform=macOS,arch=x86_64' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Locate built app
+        run: |
+          APP=$(find build/Build/Products/Release -maxdepth 1 -name "simulator-trainer.app" | head -1)
+          echo "App: $APP"
+          ls -la "$APP/Contents/MacOS"
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-trainer-macos-intel
+          path: build/Build/Products/Release/simulator-trainer.app
